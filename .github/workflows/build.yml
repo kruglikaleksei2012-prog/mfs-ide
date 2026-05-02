@@ -1,0 +1,54 @@
+name: Build MFS APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout код
+        uses: actions/checkout@v4
+
+      - name: Установка зависимостей
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-pip python3-setuptools \
+            build-essential git zip unzip \
+            libffi-dev libssl-dev \
+            openjdk-17-jdk autoconf libtool \
+            pkg-config zlib1g-dev libncurses5-dev \
+            libncursesw5-dev libtinfo5 cmake
+
+      - name: Установка buildozer и kivy
+        run: |
+          pip3 install --upgrade pip
+          pip3 install buildozer==1.5.0
+          pip3 install cython==0.29.33
+
+      - name: Кэш Android SDK/NDK
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.buildozer
+            ~/.android
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            ${{ runner.os }}-buildozer-
+
+      - name: Сборка APK
+        run: |
+          buildozer -v android debug
+
+      - name: Загрузка APK как артефакт
+        uses: actions/upload-artifact@v4
+        with:
+          name: mfs-ide-debug.apk
+          path: bin/*.apk
+          retention-days: 30
+
+
